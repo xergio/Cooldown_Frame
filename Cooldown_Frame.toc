@@ -1,0 +1,6 @@
+## Interface: 60200
+## Title: Cooldown Frame
+## Author: Gio
+## Version: 1.0
+
+main.lua
