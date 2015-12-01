@@ -1,20 +1,24 @@
 
-local _, ns = ...
+local AddOnName, Engine = ...
 local up, cd = {}, {}
 local frame
 local tick = 0
 
 
-function CreateAura(i)
+local function CreateAura(i)
 	local button = CreateFrame("Button", "Cooldown_Frame_"..i, Cooldown_Frame_UP)
 
 	button.t = button:CreateTexture(nil, "OVERLAY")
-	button.t:SetTexCoord(unpack(E.TexCoords))
-	button.t:SetInside()
+	button.t:SetTexCoord(.08, .92, .08, .92)
+	button.t:ClearAllPoints()
+	button.t:SetPoint('TOPLEFT', button, 'TOPLEFT', -2, 2)
+	button.t:SetPoint('BOTTOMRIGHT', button, 'BOTTOMRIGHT', 2, -2)
 	button.t:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
 
 	button.cd = CreateFrame('Cooldown', nil, button, 'CooldownFrameTemplate')
-	button.cd:SetInside()
+	button.cd:ClearAllPoints()
+	button.cd:SetPoint('TOPLEFT', button, 'TOPLEFT', -2, 2)
+	button.cd:SetPoint('BOTTOMRIGHT', button, 'BOTTOMRIGHT', 2, -2)
 	button.cd.noOCC = true;
 	button.cd.noCooldownCount = true;
 	button.cd:SetHideCountdownNumbers(true)
@@ -41,17 +45,20 @@ function CreateAura(i)
 		AutoCast = nil,
 	}
 
+	button:SetID(i)
+	button:Show()
+
 	return button
 end
 
 
 local function OnEvent(self, event, ...)
-	print(event)
+	--print(event)
 	if event == "SPELL_UPDATE_COOLDOWN" then
 		if GetTime()-tick > 1 then
-			for i=1, #cd, 1 do
-				print(cd[i].name)
-				print(cd[i].spellID)
+			for spellID, data in pairs(cd) do
+				print(data.name)
+				print((data.basecooldown/1000) - (GetTime() - data.start) )
 			end
 			tick = GetTime()
 		end
@@ -59,24 +66,31 @@ local function OnEvent(self, event, ...)
 	elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
 		local unitID, spell, rank, lineID, spellID = ...
 		if unitID == "player" then
-			local start, duration, enable = GetSpellCooldown(spellID)
 			local name, rank, icon, castingTime, minRange, maxRange, spellID = GetSpellInfo(spellID)
-			print(name)
-			print(start)
-			print(duration)
-			print(enable)
-			table.insert(cd, {
-				name = name, 
-				rank = rank, 
-				icon = icon, 
-				castingTime = castingTime, 
-				minRange = minRange, 
-				maxRange = maxRange, 
-				spellID = spellID,
-				start = start, 
-				duration = duration, 
-				enable = enable
-			})
+			if spellID == 75 then
+				return
+			end
+
+			local start, duration, enable = GetSpellCooldown(spellID)
+			local basecooldown = GetSpellBaseCooldown(spellID)
+			--print(name)
+			--print(basecooldown)
+			if basecooldown > 1 then
+				cd[spellID] = {
+					name = name, 
+					rank = rank, 
+					icon = icon, 
+					castingTime = castingTime, 
+					minRange = minRange, 
+					maxRange = maxRange, 
+					spellID = spellID,
+					start = start, 
+					duration = duration, 
+					enable = enable,
+					basecooldown = basecooldown
+				}
+				CreateAura(spellID)
+			end
 		end
 	end
 end
